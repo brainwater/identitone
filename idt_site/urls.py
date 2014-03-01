@@ -11,5 +11,6 @@ urlpatterns = patterns(
 
     #url(r'^admin/', include(admin.site.urls)),
     url(r'^idt/', include('idt.urls')),
-    #url(r'^identicon/', include('idt.urls')),
+    url(r'^', include('idt.urls')),
+    #url(r'^identitone/', include('idt.urls')),
 )
