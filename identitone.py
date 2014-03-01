@@ -139,11 +139,15 @@ def make_identitone(identifier, filename="identitone.wav", seconds=6, numnotes=4
     return tone
 
 def main():
+    time=6
+    sounds=4
+    notes=4
+    rate=44100
     parser = argparse.ArgumentParser()
-    parser.add_argument('-t', '--time', help="Duration of identitone", default=6, type=float)
-    parser.add_argument('-s', '--sounds', help="Number of distinct parts in an identitone", default=4, type=int)
-    parser.add_argument('-n', '--notes', help="Number of notes in each part of the identitone", default=4, type=int)
-    parser.add_argument('-r', '--rate', help="Sample rate in Hz", default=44100, type=int)
+    parser.add_argument('-t', '--time', help="Duration of identitone, default=" + str(time), default=time, type=float)
+    parser.add_argument('-s', '--sounds', help="Number of distinct parts in an identitone, default=" + str(sounds), default=sounds, type=int)
+    parser.add_argument('-n', '--notes', help="Number of notes in each part of the identitone, default=" + str(notes), default=notes, type=int)
+    parser.add_argument('-r', '--rate', help="Sample rate in Hz, default=" + str(rate), default=rate, type=int)
     parser.add_argument('seed', help="Seed string for creating the hash", type=str)
     parser.add_argument('filename', help="File to generate", type=str)
 
