@@ -4,6 +4,7 @@ identitone
 Creates a unique sound based on a hash
 
 ## Usage
+```
 usage: identitone.py [-h] [-t TIME] [-s SOUNDS] [-n NOTES] [-r RATE]
                      seed filename
 
@@ -19,7 +20,8 @@ optional arguments:
   -n NOTES, --notes NOTES
                         Number of notes in each part of the identitone
   -r RATE, --rate RATE  Sample rate in Hz
-  
+```
+
 ## Description
 
 Requires python 3 to run.
