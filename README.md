@@ -4,6 +4,7 @@ identitone
 Creates a unique sound based on a hash
 
 ## Usage
+```
 usage: identitone.py [-h] [-t TIME] [-s SOUNDS] [-n NOTES] [-r RATE]
                      seed filename
 
@@ -19,10 +20,13 @@ optional arguments:
   -n NOTES, --notes NOTES
                         Number of notes in each part of the identitone
   -r RATE, --rate RATE  Sample rate in Hz
-  
+```
+
 ## Description
 
-Uses the hash of the provided seed to create a unique identitone that should be easily distinguishable from other identitones. It uses the bits of the hash to choose which notes to play, and then creates a sequence of sounds that are each the combination of a few notes selected using the hash.
+Requires python 3 to run.
+
+Identitone uses the hash of the provided seed to create a unique identitone that should be easily distinguishable from other identitones. It uses the bits of the hash to choose which notes to play, and then creates a sequence of sounds that are each the combination of a few notes selected using the hash.
 
 I made extensive use of infinite generators in this code.
 
