@@ -14,12 +14,13 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -t TIME, --time TIME  Duration of identitone
+  -t TIME, --time TIME  Duration of identitone, default=6
   -s SOUNDS, --sounds SOUNDS
-                        Number of distinct parts in an identitone
+                        Number of distinct parts in an identitone, default=4
   -n NOTES, --notes NOTES
-                        Number of notes in each part of the identitone
-  -r RATE, --rate RATE  Sample rate in Hz
+                        Number of notes in each part of the identitone,
+                        default=4
+  -r RATE, --rate RATE  Sample rate in Hz, default=44100
 ```
 
 ## Description
