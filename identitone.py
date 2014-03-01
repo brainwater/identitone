@@ -116,11 +116,6 @@ def make_tone(tonegen, numsamples):
 def duplicate_channels(sound):
     return map(lambda x: (x, x), sound)
 
-#sample_rate = 44100
-#num_seconds = 6
-#num_notes = 2
-#num_sounds = 4
-
 def make_identitone(identifier, filename="identitone.wav", seconds=6, numnotes=4, sounds=4, rate=44100):
     sampwidth = 2
     nchannels = 2
