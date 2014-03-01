@@ -3,9 +3,28 @@ identitone
 
 Creates a unique sound based on a hash
 
-Usage: ./identitone.py email filename
+## Usage
+usage: identitone.py [-h] [-t TIME] [-s SOUNDS] [-n NOTES] [-r RATE]
+                     seed filename
 
-It will use email to create a unique sound and save it to filename as a wav file
+positional arguments:
+  seed                  Seed string for creating the hash
+  filename              File to generate
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t TIME, --time TIME  Duration of identitone
+  -s SOUNDS, --sounds SOUNDS
+                        Number of distinct parts in an identitone
+  -n NOTES, --notes NOTES
+                        Number of notes in each part of the identitone
+  -r RATE, --rate RATE  Sample rate in Hz
+  
+## Description
+
+Uses the hash of the provided seed to create a unique identitone that should be easily distinguishable from other identitones. It uses the bits of the hash to choose which notes to play, and then creates a sequence of sounds that are each the combination of a few notes selected using the hash.
+
+I made extensive use of infinite generators in this code.
 
 This was inspired by identicons, which are an excelent way to give things a visual id.
 
