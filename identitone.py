@@ -36,7 +36,7 @@ notes = {"C0": 16.35, "C#0": 17.32, "D0": 18.35, "D#0": 19.45, "E0": 20.60, "F0"
 sample_rate = 44100
 seconds_per_sound = 1.5
 num_sounds_to_play = 4
-num_tones_in_sound = 4
+num_notes_in_sound = 4
 email_regex = re.compile("\A[\w+\-.]+@([a-z\d\-]+\.)+[a-z]+\Z")
 phone_regex = re.compile("\A(1[-_ ]?)?([0-9][0-9][0-9][-_ ]?)?([0-9][0-9][0-9][-_ ]?)([0-9][0-9][0-9][0-9])\Z")
 phone_strip_list = ['-', '_', ' ']
@@ -51,6 +51,19 @@ def sine_wave(freq=440.00, rate=sample_rate, amp = 0.9):
     return (interval[i%per] for i in count())
 
 tones = {name: sine_wave(freq=val) for name, val in notes.items()}
+
+def seed_generator(unhashed):
+    """
+    Takes a string and gives a generator for making a random string
+    """
+    seed = unhashed
+    for i in count():
+        seed = hashlib.sha512(seed.encode("ascii")).hexdigest()
+        binseed = bin(int(seed, base=16))[2:]
+        for char in binseed:
+            yield char
+    
+
 # TODO: Check if it is an email or a phone number and then deal with it accordingly
 # for emails trim leading and trailing whitespace and then convert to lowercase
 def sound_from_value(unfiltered_string):
@@ -90,8 +103,8 @@ def sound_def_from_hash(hashhexdig):
     bpt = math.ceil(math.log(len(used_notes), 2))
     for soundnum in range(0, num_sounds_to_play):
         sound_def = []
-        for tonenum in range(0, num_tones_in_sound):
-            initial_bit = bpt * (soundnum * num_tones_in_sound + tonenum)
+        for tonenum in range(0, num_notes_in_sound):
+            initial_bit = bpt * (soundnum * num_notes_in_sound + tonenum)
             end_bit = initial_bit + bpt
             bitstr = binarystr[initial_bit:end_bit]
             intval = int(bitstr, base=2)
@@ -112,7 +125,7 @@ def sound_from_def(sound_def):
     Takes a sound definition (list of list of notes) and creates the sound defined by it
     """
     # average the samples
-    sounds = [map(lambda x: x / num_tones_in_sound, map(sum, zip(*sound))) for sound in sound_def]
+    sounds = [map(lambda x: x / num_notes_in_sound, map(sum, zip(*sound))) for sound in sound_def]
     sound = []
     slice_size = int(seconds_per_sound * sample_rate)
     for snd in sounds:
@@ -149,6 +162,9 @@ def write_sound_to_file(sound, filename="soundid.wav", nframes=None, nchannels=2
     w.writeframesraw(frames)
     w.close()
 
-msound = sound_from_value("blakem@example.com")
-write_sound_to_file(msound)
+#msound = sound_from_value("blakem@example.com")
+#write_sound_to_file(msound)
+#gen = seed_generator("blakem@example.com")
+#print(list(islice(gen, 9)))
+
 
