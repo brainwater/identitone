@@ -59,27 +59,27 @@ def seed_from_value(seedstr):
     filtered = None
     lower = seedstr.strip().lower()
     if phone_regex.match(lower):
-        print("It's a phone number")
         numeric = lower
         for char in phone_strip_list:
             numeric = numeric.replace(char, "")
         filtered = numeric.lstrip('1')
     elif email_regex.match(lower):
-        print("It's an email")
         filtered = lower
     else:
-        print("It's not an email or a phone number")
         filtered = lower
     return filtered
 
-# Takes a string and gives an infinite generator for making a random string
-def make_seeder(unhashed):
-    seed = unhashed
+def hash_seed(seed):
+    return hashlib.sha512(seed.encode("ascii")).hexdigest()
+
+# Takes a hash and gives an infinite generator for making pseudorandom binary based on that hash
+def make_seeder(hashdigest):
+    seed = hashdigest
     for i in count():
-        seed = hashlib.sha512(seed.encode("ascii")).hexdigest()
         binseed = bin(int(seed, base=16))[2:]
         for char in binseed:
             yield char
+        seed = hash_seed(seed)
 
 # Generates a random int between nmin (inclusive) and nmax (exclusive)
 def generate_int(seeder, nmax, nmin=0):
@@ -124,7 +124,11 @@ def duplicate_channels(sound):
 def make_identitone(identifier, filename="identitone.wav", seconds=6, numnotes=4, sounds=4, rate=44100):
     sampwidth = 2
     nchannels = 2
-    seeder = make_seeder(seed_from_value(identifier))
+    seed = seed_from_value(identifier)
+    print("Seed value after filtering: " + seed)
+    hashdigest = hash_seed(seed)
+    print("Hash for seed is: " + hashdigest)
+    seeder = make_seeder(hashdigest)
     tonedefgen = make_tonedefgen(seeder)
     tonegen = make_tonegen(tonedefgen, numnotes, rate)
     samples_per_sound = int(rate * (seconds / sounds))
