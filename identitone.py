@@ -8,6 +8,7 @@ import itertools
 import wave
 import struct
 import argparse
+import re
 
 # Identitione
 
@@ -115,6 +116,27 @@ def make_tone(tonegen, numsamples):
 # Takes a single channel sound and makes it stereo    
 def duplicate_channels(sound):
     return map(lambda x: (x, x), sound)
+
+sha512regex = re.compile(r'^[0-9abcdef]{128}$')
+
+def write_identitone(seed_hash, iofile, seconds, numnotes, sounds, rate):
+    sampwidth = 2
+    nchannels = 2
+    if not sha512regex.match(seed_hash):
+        return None
+    seeder = make_seeder(seed_hash)
+    tonedefgen = make_tonedefgen(seeder)
+    tonegen = make_tonegen(tonedefgen, numnotes, rate)
+    nframes = int(rate * seconds)
+    samples_per_sound = int(rate * (seconds / sounds))
+    tone = make_tone(tonegen, samples_per_sound)
+    stereotone = islice(duplicate_channels(tone), nframes)
+    max_amp = float(int((2 ** (sampwidth * 8)) / 2) - 1)
+    w = wave.open(iofile, 'w')
+    w.setparams((nchannels, sampwidth, rate, nframes, 'NONE', 'not compressed'))
+    frames = b''.join(b''.join(struct.pack('h', int(max_amp * sample)) for sample in channels) for channels in stereotone)
+    w.writeframesraw(frames)
+    w.close()
 
 def make_identitone(identifier, filename="identitone.wav", seconds=6, numnotes=4, sounds=4, rate=44100):
     sampwidth = 2
