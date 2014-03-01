@@ -3,8 +3,6 @@ import sys
 import hashlib
 import re
 import math
-#from itertools import imap
-#from itertools import izip
 from itertools import count, islice, starmap
 import itertools
 import wave
@@ -40,14 +38,10 @@ notes = {"C0": 16.35, "C#0": 17.32, "D0": 18.35, "D#0": 19.45, "E0": 20.60, "F0"
          "C7": 2093.00, "C#7": 2217.46, "D7": 2349.32, "D#7": 2489.02, "E7": 2637.02, "F7": 2793.83, "F#7": 2959.96, "G7": 3135.96, "G#7": 3322.44, "A7": 3520.00, "A#7": 3729.31, "B7": 3951.07,
          "C8": 4186.01, "C#8": 4434.92, "D8": 4698.63, "D#8": 4978.03, "E8": 5274.04, "F8": 5587.65, "F#8": 5919.91, "G8": 6271.93, "G#8": 6644.88, "A8": 7040.00, "A#8": 7458.62, "B8": 7902.13}
 
-sample_rate = 44100
-num_seconds = 6
-num_notes = 2
-num_sounds = 4
 email_regex = re.compile("\A[\w+\-.]+@([a-z\d\-]+\.)+[a-z]+\Z")
 phone_regex = re.compile("\A(1[-_ ]?)?([0-9][0-9][0-9][-_ ]?)?([0-9][0-9][0-9][-_ ]?)([0-9][0-9][0-9][0-9])\Z")
 phone_strip_list = ['-', '_', ' ']
-def sine_wave(freq=440.00, rate=sample_rate, amp = 0.9):
+def sine_wave(freq=440.00, rate=44100, amp = 0.9):
     if amp > 1.0:
         amp = 1.0
     if amp < 0.0:
@@ -57,7 +51,7 @@ def sine_wave(freq=440.00, rate=sample_rate, amp = 0.9):
                 for i in range(per)]
     return (interval[i%per] for i in count())
 
-tones = {name: sine_wave(freq=val) for name, val in notes.items()}
+#tones = {name: sine_wave(freq=val) for name, val in notes.items()}
 
 # Filters an identifying string into a proper seed string
 def seed_from_value(seedstr):
@@ -99,17 +93,17 @@ def make_snddefgen(seeder):
 def make_tonedefgen(seeder):
     return (make_snddefgen(seeder) for i in count())
 
-def make_sndgen(snddefgen, numnotes):
+def make_sndgen(snddefgen, numnotes, rate):
     notestrs = [next(snddefgen) for i in range(numnotes)]
     #print(notestrs)
     notenums = [notes[i] for i in notestrs]
-    notegens = map(sine_wave, notenums)
+    notegens = map(lambda x: sine_wave(x, rate), notenums)
     # Makes a generator of tuples of the zipped notegens, then maps that into the average of that tuple
     return map(lambda x: sum(x) / numnotes, zip(*notegens))
 
 # Makes an infinite generator that yields sndgens (sound generators)
-def make_tonegen(tonedefgen, numnotes):
-    return (make_sndgen(snddefgen, numnotes) for snddefgen in tonedefgen)
+def make_tonegen(tonedefgen, numnotes, rate):
+    return (make_sndgen(snddefgen, numnotes, rate) for snddefgen in tonedefgen)
 
 # Makes an infinite generator that yields samples of the tone
 def make_tone(tonegen, numsamples):
@@ -117,39 +111,31 @@ def make_tone(tonegen, numsamples):
         for sample in range(numsamples):
             yield next(sndgen)
 
-def write_wav(identifier, filename="identitone.wav", nframes=None, nchannels=2, sampwidth=2, framerate=sample_rate):
-    seeder = make_seeder(seed_from_value(identifier))
-    tonedefgen = make_tonedefgen(seeder)
-    tonegen = make_tonegen(tonedefgen, num_notes)
-    samples_per_sound = int(sample_rate * (num_seconds / num_sounds))
-    tone = make_tone(tonegen, samples_per_sound)
-    nframes = sample_rate * num_seconds
-    stereotone = islice(duplicate_channels(tone), nframes)
-    max_amp = float(int((2 ** (sampwidth * 8)) / 2) - 1)
-    w = wave.open(filename, 'w')
-    w.setparams((nchannels, sampwidth, framerate, nframes, 'NONE', 'not compressed'))
-    frames = b''.join(b''.join(struct.pack('h', int(max_amp * sample)) for sample in channels) for channels in stereotone)
-    w.writeframesraw(frames)
-    w.close()
-    return tone
-
 # Takes a single channel sound and makes it stereo    
 def duplicate_channels(sound):
     return map(lambda x: (x, x), sound)
 
-def write_sound_to_file(sound, filename="soundid.wav", nframes=None, nchannels=2, sampwidth=2, framerate=sample_rate):
-    """
-    Takes a sound an writes it to the specified file
-    """
-    # Make mono sound stereo
-    sound = duplicate_channels(sound)
-    if not nframes:
-        nframes = len(sound)
+#sample_rate = 44100
+#num_seconds = 6
+#num_notes = 2
+#num_sounds = 4
+
+def write_wav(identifier, filename="identitone.wav", seconds=6, numnotes=4, sounds=4, rate=44100):
+    sampwidth = 2
+    nchannels = 2
+    seeder = make_seeder(seed_from_value(identifier))
+    tonedefgen = make_tonedefgen(seeder)
+    tonegen = make_tonegen(tonedefgen, numnotes, rate)
+    samples_per_sound = int(rate * (seconds / sounds))
+    tone = make_tone(tonegen, samples_per_sound)
+    nframes = rate * seconds
+    stereotone = islice(duplicate_channels(tone), nframes)
     max_amp = float(int((2 ** (sampwidth * 8)) / 2) - 1)
     w = wave.open(filename, 'w')
-    w.setparams((nchannels, sampwidth, framerate, nframes, 'NONE', 'not compressed'))
-    frames = b''.join(b''.join(struct.pack('h', int(max_amp * sample)) for sample in channels) for channels in sound)
+    w.setparams((nchannels, sampwidth, rate, nframes, 'NONE', 'not compressed'))
+    frames = b''.join(b''.join(struct.pack('h', int(max_amp * sample)) for sample in channels) for channels in stereotone)
     w.writeframesraw(frames)
     w.close()
+    return tone
 
 tone = write_wav("blakem@example.com")
