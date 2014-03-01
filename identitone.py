@@ -7,6 +7,7 @@ from itertools import count, islice, starmap
 import itertools
 import wave
 import struct
+import argparse
 
 # Identitione
 
@@ -120,7 +121,7 @@ def duplicate_channels(sound):
 #num_notes = 2
 #num_sounds = 4
 
-def write_wav(identifier, filename="identitone.wav", seconds=6, numnotes=4, sounds=4, rate=44100):
+def make_identitone(identifier, filename="identitone.wav", seconds=6, numnotes=4, sounds=4, rate=44100):
     sampwidth = 2
     nchannels = 2
     seeder = make_seeder(seed_from_value(identifier))
@@ -138,4 +139,19 @@ def write_wav(identifier, filename="identitone.wav", seconds=6, numnotes=4, soun
     w.close()
     return tone
 
-tone = write_wav("blakem@example.com")
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t', '--time', help="Duration of identitone", default=6, type=float)
+    parser.add_argument('-s', '--sounds', help="Number of distinct parts in an identitone", default=4, type=int)
+    parser.add_argument('-n', '--notes', help="Number of notes in each part of the identitone", default=4, type=int)
+    parser.add_argument('-r', '--rate', help="Sample rate in Hz", default=44100, type=int)
+    parser.add_argument('seed', help="Seed string for creating the hash", type=str)
+    parser.add_argument('filename', help="File to generate", type=str)
+
+    args = parser.parse_args()
+
+    make_identitone(args.seed, args.filename, args.time, args.notes, args.sounds, args.rate)
+
+if __name__ == "__main__":
+    main()
+
