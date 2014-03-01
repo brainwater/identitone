@@ -25,6 +25,8 @@ optional arguments:
 
 ## Description
 
+Source code can be found on GitHub at [https://github.com/brainwater/identitone](https://github.com/brainwater/identitone)
+
 Requires python 3 to run.
 
 Identitone uses the hash of the provided seed to create a unique identitone that should be easily distinguishable from other identitones. It uses the bits of the hash to choose which notes to play, and then creates a sequence of sounds that are each the combination of a few notes selected using the hash.
