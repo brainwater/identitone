@@ -5,18 +5,25 @@ import re
 import math
 #from itertools import imap
 #from itertools import izip
-from itertools import count
-from itertools import islice
+from itertools import count, islice, starmap
 import itertools
 import wave
 import struct
 
 # Identitione
 
-# I want to:
-#  put this on github
-#  make infinite seed generator
-#  add option to select number of distinct sounds in an identitone
+# Definitions:
+# tone: collection of sounds that make an identifying audio bite i.e. an identitone
+# sound: collection of notes, is a homogenous repeating waveform
+# note: a single pitch, chosen from the used_notes list.
+# tonedef: a tone definition, consisting of snddefs
+# snddef: a sound definition, consisting of a list of notes
+
+# First makes a tonedefgen, which is an infinite generator of snddefgens
+# A snddefgen is an infinite generator that yields notes using the seeder
+# Second it makes a tonegen, which is an infinite generator of sndgens
+# A sndgen is an infinite generator of amplitudes made from the combined notes for that sound
+# Then it uses the tonegen to make an actual tone, which is a list of numbers indicating the amplitude
 
 # Have a power of two (32) for the number of notes for perfectionism's sake
 # It will take 5 bits to identify a random note from this list
@@ -34,9 +41,9 @@ notes = {"C0": 16.35, "C#0": 17.32, "D0": 18.35, "D#0": 19.45, "E0": 20.60, "F0"
          "C8": 4186.01, "C#8": 4434.92, "D8": 4698.63, "D#8": 4978.03, "E8": 5274.04, "F8": 5587.65, "F#8": 5919.91, "G8": 6271.93, "G#8": 6644.88, "A8": 7040.00, "A#8": 7458.62, "B8": 7902.13}
 
 sample_rate = 44100
-seconds_per_sound = 1.5
-num_sounds_to_play = 4
-num_notes_in_sound = 4
+num_seconds = 6
+num_notes = 2
+num_sounds = 4
 email_regex = re.compile("\A[\w+\-.]+@([a-z\d\-]+\.)+[a-z]+\Z")
 phone_regex = re.compile("\A(1[-_ ]?)?([0-9][0-9][0-9][-_ ]?)?([0-9][0-9][0-9][-_ ]?)([0-9][0-9][0-9][0-9])\Z")
 phone_strip_list = ['-', '_', ' ']
@@ -52,100 +59,83 @@ def sine_wave(freq=440.00, rate=sample_rate, amp = 0.9):
 
 tones = {name: sine_wave(freq=val) for name, val in notes.items()}
 
-def seed_generator(unhashed):
-    """
-    Takes a string and gives a generator for making a random string
-    """
-    seed = unhashed
-    for i in count():
-        seed = hashlib.sha512(seed.encode("ascii")).hexdigest()
-        binseed = bin(int(seed, base=16))[2:]
-        for char in binseed:
-            yield char
-    
-
-# TODO: Check if it is an email or a phone number and then deal with it accordingly
-# for emails trim leading and trailing whitespace and then convert to lowercase
-def sound_from_value(unfiltered_string):
+# Filters an identifying string into a proper seed string
+def seed_from_value(seedstr):
     filtered = None
-    trimmed = unfiltered_string.strip()
-    lower = trimmed.lower()
+    lower = seedstr.strip().lower()
     if phone_regex.match(lower):
         print("It's a phone number")
         numeric = lower
         for char in phone_strip_list:
             numeric = numeric.replace(char, "")
-        # TODO add a 1 if it is missing, or have it remove the 1 if it starts with a 1 (lstrip('1'))
-        filtered = numeric
+        filtered = numeric.lstrip('1')
     elif email_regex.match(lower):
         print("It's an email")
         filtered = lower
     else:
         print("It's not an email or a phone number")
         filtered = lower
-    return sound_from_identifier(filtered)
+    return filtered
 
-# This takes in a well formated unique identifier string with filters already applied to it (e.g. trimming whitespace, converting to lowercase, etc.)
-def sound_from_identifier(unhashed_string):
-    # TODO: handle case of when non-ascii characters are in the string, probably should just asciify the string
-    hashhexdig = hashlib.sha512(unhashed_string.encode("ascii")).hexdigest()
-    return sound_from_hash(hashhexdig)
+# Takes a string and gives an infinite generator for making a random string
+def make_seeder(unhashed):
+    seed = unhashed
+    for i in count():
+        seed = hashlib.sha512(seed.encode("ascii")).hexdigest()
+        binseed = bin(int(seed, base=16))[2:]
+        for char in binseed:
+            yield char
 
+# Generates a random int between nmin (inclusive) and nmax (exclusive)
+def generate_int(seeder, nmax, nmin=0):
+    bstr = [next(seeder) for i in range(math.ceil(math.log(nmax - nmin, 2)))]
+    return int(''.join(bstr), base=2)
 
-def sound_def_from_hash(hashhexdig):
-    """
-    Takes a hex hash digest and produces a unique sound definition based on it
-    """
-    binarystr = bin(int(hashhexdig, base=16))[2:]
-    # List of lists of tones to produce
-    sounds_defs = []
-    # Bits per tone
-    bpt = math.ceil(math.log(len(used_notes), 2))
-    for soundnum in range(0, num_sounds_to_play):
-        sound_def = []
-        for tonenum in range(0, num_notes_in_sound):
-            initial_bit = bpt * (soundnum * num_notes_in_sound + tonenum)
-            end_bit = initial_bit + bpt
-            bitstr = binarystr[initial_bit:end_bit]
-            intval = int(bitstr, base=2)
-            tone = used_notes[intval]
-            sound_def.append(tone)
-        sounds_defs.append(sound_def)
-    
-    return sounds_defs
+# Makes an infinite generator that yields notes from the seeder
+def make_snddefgen(seeder):
+    return (used_notes[generate_int(seeder, len(used_notes))] for i in count())
 
-def def_to_tones(sound_def):
-    """
-    Takes a sound definition and returns a list of lists of tone generators for that definition
-    """
-    return [[tones[tone_name] for tone_name in sound] for sound in sound_def]
+# Gives an infinite generator that yields snddefgens (sound definition generators)
+def make_tonedefgen(seeder):
+    return (make_snddefgen(seeder) for i in count())
 
-def sound_from_def(sound_def):
-    """
-    Takes a sound definition (list of list of notes) and creates the sound defined by it
-    """
-    # average the samples
-    sounds = [map(lambda x: x / num_notes_in_sound, map(sum, zip(*sound))) for sound in sound_def]
-    sound = []
-    slice_size = int(seconds_per_sound * sample_rate)
-    for snd in sounds:
-        sound = sound + list(islice(snd, slice_size))
-    return sound
+def make_sndgen(snddefgen, numnotes):
+    notestrs = [next(snddefgen) for i in range(numnotes)]
+    #print(notestrs)
+    notenums = [notes[i] for i in notestrs]
+    notegens = map(sine_wave, notenums)
+    # Makes a generator of tuples of the zipped notegens, then maps that into the average of that tuple
+    return map(lambda x: sum(x) / numnotes, zip(*notegens))
 
-def sound_from_hash(hashhexdig):
-    """
-    Takes a hex hash digest and produces a unique sound based on it
-    """
-    sound_def = sound_def_from_hash(hashhexdig)
-    sound_tones = def_to_tones(sound_def)
-    sound = sound_from_def(sound_tones)
-    return sound
+# Makes an infinite generator that yields sndgens (sound generators)
+def make_tonegen(tonedefgen, numnotes):
+    return (make_sndgen(snddefgen, numnotes) for snddefgen in tonedefgen)
 
+# Makes an infinite generator that yields samples of the tone
+def make_tone(tonegen, numsamples):
+    for sndgen in tonegen:
+        for sample in range(numsamples):
+            yield next(sndgen)
+
+def write_wav(identifier, filename="identitone.wav", nframes=None, nchannels=2, sampwidth=2, framerate=sample_rate):
+    seeder = make_seeder(seed_from_value(identifier))
+    tonedefgen = make_tonedefgen(seeder)
+    tonegen = make_tonegen(tonedefgen, num_notes)
+    samples_per_sound = int(sample_rate * (num_seconds / num_sounds))
+    tone = make_tone(tonegen, samples_per_sound)
+    nframes = sample_rate * num_seconds
+    stereotone = islice(duplicate_channels(tone), nframes)
+    max_amp = float(int((2 ** (sampwidth * 8)) / 2) - 1)
+    w = wave.open(filename, 'w')
+    w.setparams((nchannels, sampwidth, framerate, nframes, 'NONE', 'not compressed'))
+    frames = b''.join(b''.join(struct.pack('h', int(max_amp * sample)) for sample in channels) for channels in stereotone)
+    w.writeframesraw(frames)
+    w.close()
+    return tone
+
+# Takes a single channel sound and makes it stereo    
 def duplicate_channels(sound):
-    """
-    Takes a single channel sound and makes it stereo
-    """
-    return [(x, x) for x in sound]
+    return map(lambda x: (x, x), sound)
 
 def write_sound_to_file(sound, filename="soundid.wav", nframes=None, nchannels=2, sampwidth=2, framerate=sample_rate):
     """
@@ -162,9 +152,4 @@ def write_sound_to_file(sound, filename="soundid.wav", nframes=None, nchannels=2
     w.writeframesraw(frames)
     w.close()
 
-#msound = sound_from_value("blakem@example.com")
-#write_sound_to_file(msound)
-#gen = seed_generator("blakem@example.com")
-#print(list(islice(gen, 9)))
-
-
+tone = write_wav("blakem@example.com")
