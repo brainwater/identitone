@@ -14,11 +14,11 @@ def get_identitone(request, seed_hash):
     notes = 4
     rate = 44100
     if 'time' in request.GET:
-        time = request.GET['time']
+        time = float(request.GET['time'])
     if 'sounds' in request.GET:
-        sounds = request.GET['sounds']
+        sounds = int(request.GET['sounds'])
     if 'notes' in request.GET:
-        notes = request.GET['notes']
+        notes = int(request.GET['notes'])
     if 'rate' in request.GET:
         rate = request.GET['rate']
     identitone.write_identitone(seed_hash, response, time, notes, sounds, rate)
@@ -35,11 +35,11 @@ def get_raw_identitone(request):
     notes = 4
     rate = 44100
     if 'time' in request.GET:
-        time = request.GET['time']
+        time = float(request.GET['time'])
     if 'sounds' in request.GET:
-        sounds = request.GET['sounds']
+        sounds = int(request.GET['sounds'])
     if 'notes' in request.GET:
-        notes = request.GET['notes']
+        notes = int(request.GET['notes'])
     if 'rate' in request.GET:
         rate = request.GET['rate']
 
