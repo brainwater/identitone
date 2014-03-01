@@ -8,6 +8,7 @@ def get_identitone(request, seed_hash):
     Generates an identitone as a wav file
     """
     response = HttpResponse(content_type='audio/wav')
+    response['Content-Disposition'] = 'filename="identitone.wav"'
     time = 8
     sounds = 8
     notes = 4
@@ -28,6 +29,7 @@ def get_raw_identitone(request):
     Generates an identitone from a seed that isn't a hash
     """
     response = HttpResponse(content_type='audio/wav')
+    response['Content-Disposition'] = 'filename="identitone.wav"'
     time = 8
     sounds = 8
     notes = 4
