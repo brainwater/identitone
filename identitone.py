@@ -126,9 +126,9 @@ def make_identitone(identifier, filename="identitone.wav", seconds=6, numnotes=4
     seeder = make_seeder(hashdigest)
     tonedefgen = make_tonedefgen(seeder)
     tonegen = make_tonegen(tonedefgen, numnotes, rate)
+    nframes = int(rate * seconds)
     samples_per_sound = int(rate * (seconds / sounds))
     tone = make_tone(tonegen, samples_per_sound)
-    nframes = rate * seconds
     stereotone = islice(duplicate_channels(tone), nframes)
     max_amp = float(int((2 ** (sampwidth * 8)) / 2) - 1)
     w = wave.open(filename, 'w')
