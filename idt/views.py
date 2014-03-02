@@ -10,7 +10,7 @@ def get_identitone(request, seed_hash):
     response = HttpResponse(content_type='audio/wav')
     response['Content-Disposition'] = 'filename="identitone.wav"'
     time = 2
-    sounds = 8
+    sounds = 16
     notes = 1
     rate = 44100
     if 'time' in request.GET:
@@ -31,7 +31,7 @@ def get_raw_identitone(request):
     response = HttpResponse(content_type='audio/wav')
     response['Content-Disposition'] = 'filename="identitone.wav"'
     time = 2
-    sounds = 8
+    sounds = 16
     notes = 1
     rate = 44100
     if 'time' in request.GET:
