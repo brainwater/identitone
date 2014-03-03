@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 import identitone
-
+from django.views.decorators.gzip import gzip_page
 
 def get_identitone(request, seed_hash):
     """
@@ -50,4 +50,3 @@ def get_raw_identitone(request):
     seed_hash = identitone.hash_seed(seed)
     identitone.write_identitone(seed_hash, response, time, notes, sounds, rate)
     return response
-
