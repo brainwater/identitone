@@ -10,7 +10,7 @@ urlpatterns = patterns(
     # url(r'^blog/', include('blog.urls')),
 
     #url(r'^admin/', include(admin.site.urls)),
-    url(r'^idt/', include('idt.urls')),
+#    url(r'^idt/', include('idt.urls')),
     url(r'^', include('idt.urls')),
     #url(r'^identitone/', include('idt.urls')),
 )
