@@ -1,7 +1,13 @@
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.http import HttpResponseRedirect
 import identitone
 
+def home(request):
+    """
+    Redirects to identitone github page
+    """
+    return HttpResponseRedirect("https://github.com/brainwater/identitone")
 
 def get_identitone(request, seed_hash):
     """
