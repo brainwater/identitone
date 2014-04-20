@@ -43,15 +43,25 @@ notes = {"C0": 16.35, "C#0": 17.32, "D0": 18.35, "D#0": 19.45, "E0": 20.60, "F0"
 email_regex = re.compile("\A[\w+\-.]+@([a-z\d\-]+\.)+[a-z]+\Z")
 phone_regex = re.compile("\A(1[-_ ]?)?([0-9][0-9][0-9][-_ ]?)?([0-9][0-9][0-9][-_ ]?)([0-9][0-9][0-9][0-9])\Z")
 phone_strip_list = ['-', '_', ' ']
-def sine_wave(freq=440.00, rate=44100, amp = 0.9):
+lookup_dict = {}
+default_amplitude=0.9
+def sine_wave(freq=440.00, rate=44100, amp=0.9, harmonic=True):
     if amp > 1.0:
         amp = 1.0
     if amp < 0.0:
         amp = 0.0
     per = int(rate/freq)
-    interval = [float(amp) * math.sin(2.0 * math.pi * float(freq) * (float(i % per)/float(rate)))
-                for i in range(per)]
-    return (interval[i%per] for i in count())
+    if rate is 44100 and amp is 0.9 and freq in lookup_dict:
+        return lookup_dict[freq]
+    else:
+        interval = [float(amp) * math.sin(2.0 * math.pi * float(freq) * (float(i % per)/float(rate)))
+                    for i in range(per)]
+        if harmonic:
+            interval = [(i + (float(amp / 2) * math.sin(2.0 * math.pi * float(freq * 2) * (float(i % int(per / 2))/float(rate))))) / 1.5
+                        for i in interval]
+        return (interval[i%per] for i in count())
+
+lookup_dict = {notes[note]: sine_wave(notes[note]) for note in used_notes}
 
 #tones = {name: sine_wave(freq=val) for name, val in notes.items()}
 
@@ -95,17 +105,17 @@ def make_snddefgen(seeder):
 def make_tonedefgen(seeder):
     return (make_snddefgen(seeder) for i in count())
 
-def make_sndgen(snddefgen, numnotes, rate):
+def make_sndgen(snddefgen, numnotes, rate, harmonic):
     notestrs = [next(snddefgen) for i in range(numnotes)]
     #print(notestrs)
     notenums = [notes[i] for i in notestrs]
-    notegens = map(lambda x: sine_wave(x, rate), notenums)
+    notegens = map(lambda x: sine_wave(x, rate, default_amplitude, harmonic), notenums)
     # Makes a generator of tuples of the zipped notegens, then maps that into the average of that tuple
     return map(lambda x: sum(x) / numnotes, zip(*notegens))
 
 # Makes an infinite generator that yields sndgens (sound generators)
-def make_tonegen(tonedefgen, numnotes, rate):
-    return (make_sndgen(snddefgen, numnotes, rate) for snddefgen in tonedefgen)
+def make_tonegen(tonedefgen, numnotes, rate, harmonic):
+    return (make_sndgen(snddefgen, numnotes, rate, harmonic) for snddefgen in tonedefgen)
 
 # Makes an infinite generator that yields samples of the tone
 def make_tone(tonegen, numsamples):
@@ -119,14 +129,14 @@ def duplicate_channels(sound):
 
 sha512regex = re.compile(r'^[0-9abcdef]{128}$')
 
-def write_identitone(seed_hash, iofile, seconds, numnotes, sounds, rate):
+def write_identitone(seed_hash, iofile, seconds, numnotes, sounds, rate, harmonic=True):
     sampwidth = 2
     nchannels = 2
     if not sha512regex.match(seed_hash):
         return None
     seeder = make_seeder(seed_hash)
     tonedefgen = make_tonedefgen(seeder)
-    tonegen = make_tonegen(tonedefgen, numnotes, rate)
+    tonegen = make_tonegen(tonedefgen, numnotes, rate, harmonic)
     nframes = int(rate * seconds)
     samples_per_sound = int(rate * (seconds / sounds))
     tone = make_tone(tonegen, samples_per_sound)
@@ -138,7 +148,7 @@ def write_identitone(seed_hash, iofile, seconds, numnotes, sounds, rate):
     w.writeframesraw(frames)
     w.close()
 
-def make_identitone(identifier, filename="identitone.wav", seconds=6, numnotes=4, sounds=4, rate=44100):
+def make_identitone(identifier, filename="identitone.wav", seconds=6, numnotes=4, sounds=4, rate=44100, harmonic=True):
     sampwidth = 2
     nchannels = 2
     seed = seed_from_value(identifier)
@@ -147,7 +157,7 @@ def make_identitone(identifier, filename="identitone.wav", seconds=6, numnotes=4
     print("Hash for seed is: " + hashdigest)
     seeder = make_seeder(hashdigest)
     tonedefgen = make_tonedefgen(seeder)
-    tonegen = make_tonegen(tonedefgen, numnotes, rate)
+    tonegen = make_tonegen(tonedefgen, numnotes, rate, harmonic)
     nframes = int(rate * seconds)
     samples_per_sound = int(rate * (seconds / sounds))
     tone = make_tone(tonegen, samples_per_sound)
@@ -161,21 +171,22 @@ def make_identitone(identifier, filename="identitone.wav", seconds=6, numnotes=4
     return tone
 
 def main():
-    time=6
-    sounds=4
-    notes=4
+    time=2
+    sounds=16
+    notes=1
     rate=44100
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--time', help="Duration of identitone, default=" + str(time), default=time, type=float)
     parser.add_argument('-s', '--sounds', help="Number of distinct parts in an identitone, default=" + str(sounds), default=sounds, type=int)
     parser.add_argument('-n', '--notes', help="Number of notes in each part of the identitone, default=" + str(notes), default=notes, type=int)
     parser.add_argument('-r', '--rate', help="Sample rate in Hz, default=" + str(rate), default=rate, type=int)
+    parser.add_argument('-H', '--no-harmonic', help="Do not add a second harmonic of 1/2 amplitude to notes", dest='harmonic', default=True, const=False, action='store_const')
     parser.add_argument('seed', help="Seed string for creating the hash", type=str)
     parser.add_argument('filename', help="File to generate", type=str)
 
     args = parser.parse_args()
 
-    make_identitone(args.seed, args.filename, args.time, args.notes, args.sounds, args.rate)
+    make_identitone(args.seed, args.filename, args.time, args.notes, args.sounds, args.rate, args.harmonic)
 
 if __name__ == "__main__":
     main()
